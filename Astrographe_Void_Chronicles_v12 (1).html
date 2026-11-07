@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#080e18">
+<title>Astrographe: Void Chronicles — v12</title>
+<style>
+:root{--bg:#080e18;--panel:#101d2b;--line:#426176;--cyan:#8bd8df;--muted:#7896a6}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:#dce8e8;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;touch-action:manipulation}
+body{display:flex;justify-content:center;align-items:center}
+#game{position:relative;width:min(100vw,56.25vh);height:min(100vh,177.78vw);max-height:100dvh;aspect-ratio:9/16;background:#080e18;overflow:hidden;border-left:1px solid #203849;border-right:1px solid #203849}
+canvas{width:100%;height:100%;display:block;touch-action:none}
+#topbar{position:absolute;top:env(safe-area-inset-top,8px);left:10px;right:10px;display:flex;justify-content:space-between;gap:6px;pointer-events:none;font-size:9px;letter-spacing:1px;color:#b4d4d7;text-shadow:0 1px #000}
+.pill{background:#091521e8;border:1px solid #345063;padding:6px 8px}
+#bottom{position:absolute;left:9px;right:9px;bottom:calc(env(safe-area-inset-bottom,8px) + 9px);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+button{font:inherit;color:#d7eeee;background:#102333;border:1px solid #527386;border-radius:6px;padding:8px 6px;min-height:39px;letter-spacing:.3px;box-shadow:0 3px 0 #050a10;font-size:10px;touch-action:none;user-select:none;-webkit-user-select:none}
+button:active{transform:translateY(2px);box-shadow:0 1px 0 #050a10;background:#1d3b4c}
+button[hidden]{display:none!important}
+#hint{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,8px) + 111px);text-align:center;color:#a4c4c9;font-size:9px;line-height:1.4;text-shadow:0 2px #000;pointer-events:none}
+#panel{position:absolute;inset:7% 5%;background:#0a1420f5;border:2px solid #567386;box-shadow:0 0 0 4px #07101a,0 0 30px #000;display:none;padding:14px;overflow:auto;z-index:5}
+#panel h2{font-size:15px;color:var(--cyan);font-weight:normal;letter-spacing:2px;margin:4px 0 12px}
+#panel p{font-size:12px;line-height:1.6;color:#bfd0d2}
+#panel .close{width:100%;margin-top:14px;min-height:44px}
+#panel textarea{width:100%;background:#101d28;border:1px solid #456174;color:#e0eeee;padding:10px;font:12px monospace;margin:6px 0;min-height:110px;resize:vertical}
+.entry{border:1px solid #344d5c;padding:10px;margin:8px 0;background:#0d1b28}
+.small{font-size:10px;color:#8daab5}
+.stat{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #45606d;padding:7px 0;font-size:11px}
+#toast{position:absolute;top:17%;left:12%;right:12%;text-align:center;background:#0b1925ed;border:1px solid #64899a;padding:10px;font-size:11px;color:#c7ecec;display:none;z-index:7}
+@media(max-height:650px){#bottom{gap:4px;bottom:5px}button{min-height:34px;padding:5px;font-size:9px}#hint{bottom:calc(env(safe-area-inset-bottom,5px) + 94px)}}
+.pill{border-radius:6px;backdrop-filter:blur(4px)}#toast,#panel{animation:fade .25s ease}@keyframes fade{from{opacity:0}to{opacity:1}}
+@media (orientation:landscape) and (max-height:700px){
+:root{--side:calc((100vw - 56.25dvh)/2 - 18px);--bw:calc((var(--side) - 34px)/2);--lo:max(8px,env(safe-area-inset-left));--ro:max(10px,env(safe-area-inset-right))}
+#game{width:100vw;height:100vh;height:100dvh;max-height:none;aspect-ratio:auto;border:0}
+canvas{position:absolute;top:0;left:50%;transform:translateX(-50%);height:100%;width:calc(100vh*.5625);width:calc(100dvh*.5625)}
+#topbar{left:calc(50% - 28dvh + 6px);right:calc(50% - 28dvh + 6px)}
+#bottom{display:contents}
+#bottom button{position:absolute;right:var(--ro);width:var(--bw);height:46px;min-height:46px;padding:4px;font-size:10px;line-height:1.15}
+#flyBtn,#walkBtn,#cabinBtn,#landBtn,#walkExitBtn,#takeoffBtn{bottom:166px}
+#prevPlanetBtn,#nextPlanetBtn{bottom:114px}
+#scanBtn,#terminalBtn{bottom:62px}
+#noteBtn{bottom:10px}
+#flyBtn,#cabinBtn,#walkExitBtn,#takeoffBtn,#prevPlanetBtn,#scanBtn,#noteBtn{right:calc(var(--ro) + var(--bw) + 8px)}
+#interactBtn{bottom:114px;right:var(--ro);width:calc(var(--bw)*2 + 8px);font-size:9px}
+#forwardBtn,#backBtn,#leftBtn,#rightBtn,#thrustBtn,#brakeBtn{right:auto;width:86px;height:54px;min-height:54px}
+#forwardBtn{left:calc(var(--side)/2 - 35px);bottom:122px}
+#backBtn{left:calc(var(--side)/2 - 35px);bottom:6px}
+#leftBtn{left:var(--lo);bottom:64px}
+#rightBtn{left:calc(var(--side) - 78px);bottom:64px}
+#thrustBtn{left:var(--lo);bottom:84px;width:calc(var(--side) - 8px);height:80px}
+#brakeBtn{left:var(--lo);bottom:8px;width:calc(var(--side) - 8px);height:66px}
+#hint{top:40px;bottom:auto;left:var(--lo);right:auto;width:calc(var(--side) - 8px);text-align:left}
+#toast{left:calc(50% - 25dvh);right:calc(50% - 25dvh);top:14%}
+#panel{inset:4% 14%}
+}
+</style>
+</head>
+<body>
+<div id="game">
+ <canvas id="view" width="240" height="426" aria-label="Вид из исследовательского корабля"></canvas>
+ <div id="topbar"><div class="pill">ASTROGRAPHE / 12</div><div class="pill" id="clock">SHIP TIME 00:00</div></div>
+ <div id="hint">КАБИНА: выберите действие</div>
+ <div id="bottom">
+  <button id="flyBtn">ПОЛЁТ</button>
+  <button id="prevPlanetBtn">◀ ПРЕДЫДУЩАЯ</button>
+  <button id="nextPlanetBtn">СЛЕДУЮЩАЯ ▶</button>
+  <button id="cabinBtn" hidden>КАБИНА</button>
+  <button id="walkBtn">ПРОГУЛКА ПО КОРАБЛЮ</button>
+  <button id="landBtn" hidden>ВЫСАДИТЬСЯ НА ПЛАНЕТУ</button>
+  <button id="takeoffBtn" hidden>ВЕРНУТЬСЯ НА КОРАБЛЬ</button>
+  <button id="walkExitBtn" hidden>ВЕРНУТЬСЯ В КАБИНУ</button>
+  <button id="interactBtn" hidden>ОСМОТРЕТЬ ПРЕДМЕТ</button>
+  <button id="scanBtn">СКАНЕР</button>
+  <button id="noteBtn">БЛОКНОТ</button>
+  <button id="terminalBtn">ТЕРМИНАЛ</button>
+  <button id="thrustBtn" hidden>УДЕРЖИВАТЬ: ТЯГА +</button>
+  <button id="brakeBtn" hidden>УДЕРЖИВАТЬ: ТОРМОЗ</button>
+  <button id="forwardBtn" hidden>▲ ВПЕРЁД</button>
+  <button id="backBtn" hidden>▼ НАЗАД</button>
+  <button id="leftBtn" hidden>◀ ВЛЕВО</button>
+  <button id="rightBtn" hidden>ВПРАВО ▶</button>
+ </div>
+ <div id="toast"></div>
+ <div id="panel"><div id="panelContent"></div><button class="close" id="closeBtn">ЗАКРЫТЬ</button></div>
+</div>
+<script>
+const LS=(()=>{try{localStorage.setItem("_t","1");localStorage.removeItem("_t");return localStorage}catch(e){const m={};return{getItem:k=>(k in m?m[k]:null),setItem:(k,v)=>{m[k]=String(v)}}}})();
+(()=>{
+'use strict';
+const canvas=document.getElementById('view');
+const ctx=canvas.getContext('2d');
+const W=240,H=426;let S=1;
+function fit(){const dpr=Math.min(window.devicePixelRatio||1,3);S=Math.min(4,Math.max(1,canvas.clientWidth*dpr/W));canvas.width=Math.round(W*S);canvas.height=Math.round(H*S);ctx.setTransform(S,0,0,S,0,0);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';}
+fit();window.addEventListener('resize',fit);
+const $=id=>document.getElementById(id);
+let mode='cabin',seconds=0,frame=0,planetFound=false,scanCount=0;
+const planets=[
+ {name:'KEPLER-186 f',type:'КАМЕНИСТАЯ',kind:'rock',colors:['#172b42','#365b70','#6b8b91'],sky:['#101e36','#b17e68'],ground:'#514b45',land:true,info:'Каменистый мир с прохладной поверхностью. Атмосфера и состав требуют дополнительного анализа.'},
+ {name:'VESPER-4',type:'ЛЕДЯНАЯ',kind:'ice',colors:['#233b58','#77a9bb','#d3e4df'],sky:['#142b45','#9ab9c5'],ground:'#9eb8bd',land:true,info:'Ледяная планета с широкими замёрзшими равнинами и трещинами в коре.'},
+ {name:'CINDER-9',type:'ПУСТЫННАЯ',kind:'desert',colors:['#452b27','#a65c3d','#e3b16e'],sky:['#39252b','#d18b61'],ground:'#9a6348',land:true,info:'Сухой мир с красноватыми породами, пылевыми полями и резкими перепадами температуры.'},
+ {name:'PELAGIA',type:'ОКЕАНИЧЕСКАЯ',kind:'ocean',colors:['#102d4c','#176f91','#70c3c7'],sky:['#12334d','#7bb4bd'],ground:'#176078',land:true,info:'Планета с глобальным океаном. Сканер отмечает облачные системы и крупные течения.'},
+ {name:'MYCEL-12',type:'БОЛОТНАЯ',kind:'swamp',colors:['#1d3028','#526e48','#9aa56a'],sky:['#182d2b','#8d9a70'],ground:'#46533b',land:true,info:'Влажный мир с тёмными низинами, туманом и необычными минеральными отложениями.'},
+ {name:'AURELIA',type:'ГАЗОВЫЙ ГИГАНТ',kind:'gas',colors:['#4b2e49','#b27a83','#e5c69b'],sky:['#28223e','#b58b9b'],ground:'#4b3c55',land:false,info:'Газовый гигант с полосатой атмосферой. Твёрдой поверхности для посадки нет.'},
+ {name:'NOCTIS',type:'ТЁМНЫЙ КАМЕНИСТЫЙ МИР',kind:'dark',colors:['#101b2a','#33475b','#71808b'],sky:['#0b1423','#596b7d'],ground:'#303c48',land:true,info:'Холодная планета с тёмной корой и редкими отражающими минералами.'},
+ {name:'THALASSA',type:'ЛЕДЯНОЙ ОКЕАН',kind:'iceocean',colors:['#16374a','#43879a','#b4e1dd'],sky:['#18384a','#9cc9c8'],ground:'#477f8a',land:true,info:'Под ледяной корой предположительно скрывается жидкий океан.'},
+ {name:'RUBRA',type:'ЖЕЛЕЗИСТАЯ ПЛАНЕТА',kind:'iron',colors:['#3a1d20','#853c35','#d17a55'],sky:['#2b1a25','#a75b4a'],ground:'#754239',land:true,info:'Планета с высоким содержанием железистых пород и красной пылью.'},
+ {name:'SYLVA-3',type:'ЗЕЛЁНЫЙ КАМЕНИСТЫЙ МИР',kind:'green',colors:['#1d3b34','#4d7958','#a0b77c'],sky:['#193c3d','#a3b58a'],ground:'#536b4b',land:true,info:'Мир с обширными зелёными минеральными равнинами и плотной облачностью.'}
+];
+let targetIndex=0,surfacePlanetIndex=0;
+const activePlanet=()=>planets[targetIndex];
+let notes=LS.getItem('astro_notes')||'Первое наблюдение. Сектор кажется совершенно пустым...';
+let yaw=0,pitch=0,speed=0,distance=.92,thrusting=false,braking=false;
+let landed=false,walkX=2.5,walkY=5.5,walkAngle=0,walkForward=false,walkBack=false,walkLeft=false,walkRight=false;
+let surfaceX=0,surfaceZ=0,surfaceForward=false,surfaceBack=false,surfaceLeft=false,surfaceRight=false;
+const shipMap=[
+ '############',
+ '#..........#',
+ '#.####.###.#',
+ '#....#.....#',
+ '###..#.###.#',
+ '#....#.....#',
+ '#.######.#.#',
+ '#..........#',
+ '#..........#',
+ '############'
+ ];
+let dragPointer=null,lastPointerX=0,lastPointerY=0,toastTimer;
+const stars=Array.from({length:125},(_,i)=>({x:((i*73+19)%200-100)/100,y:((i*137+31)%180-90)/90,z:.25+((i*47)%150)/100,size:i%11===0?2:1}));
+
+function rect(x,y,w,h,c){const x0=Math.round(x*S)/S,y0=Math.round(y*S)/S;ctx.fillStyle=c;ctx.fillRect(x0,y0,Math.round((x+w)*S)/S-x0,Math.round((y+h)*S)/S-y0);}
+function line(x,y,x2,y2,c){ctx.strokeStyle=c;ctx.lineWidth=.8;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x2,y2);ctx.stroke();}
+function txt(t,x,y,c='#b7d5d9',size=7){ctx.fillStyle=c;ctx.font=`${size}px ui-monospace,Menlo,Consolas,monospace`;ctx.fillText(t,x,y);}
+function showToast(message){const el=$('toast');el.textContent=message;el.style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.style.display='none',2200);}
+function openPanel(html){$('panelContent').innerHTML=html;$('panel').style.display='block';}
+function closePanel(){$('panel').style.display='none';}
+
+function drawCabin(){
+ rect(0,0,W,H,'#080f1b');
+ // Иллюминатор и космос за ним
+ rect(9,27,222,194,'#263b4b');rect(13,31,214,186,'#070d17');rect(17,35,206,178,'#0a1422');
+ stars.forEach((s,i)=>{const x=(s.x*80+120+Math.sin(frame*.008+i)*1.5+240)%240;const y=(s.y*65+115)%205;ctx.fillStyle='#a8d1dc';ctx.globalAlpha=.6+.4*Math.sin(frame*.03+i);ctx.beginPath();ctx.arc(x,y,s.size*.55,0,6.283);ctx.fill();ctx.globalAlpha=1;});
+ drawPlanet(169,126,37,targetIndex);
+ rect(115,27,10,194,'#314b5b');rect(9,108,222,7,'#314b5b');rect(17,35,2,178,'#66818a');rect(221,35,2,178,'#66818a');
+ rect(0,0,240,25,'#172735');rect(0,222,240,204,'#101d29');rect(0,222,240,5,'#314654');
+ rect(0,245,240,66,'#1b2d39');rect(7,251,226,52,'#0b1721');
+ rect(14,258,58,31,'#18313a');rect(17,261,52,25,'#0a1a24');txt('TELEMETRY',21,269,'#78b9c0',5);
+ for(let i=0;i<6;i++){const h=3+4*Math.abs(Math.sin(frame*.03+i*1.3));rect(21+i*7,283-h,3,h,'#54818b');}
+ rect(88,254,64,38,'#263e49');rect(92,258,56,29,'#0c1c27');txt('SPECTROMETER',96,266,'#8ed0d0',5);
+ for(let i=0;i<9;i++)line(96+i*5,280,96+i*5,274-(i%4)*3,'#74c0c5');
+ rect(168,258,57,31,'#18313a');rect(171,261,51,25,'#0a1a24');txt('NAV / ORBIT',176,269,'#78b9c0',5);line(177,279,216,279,'#456d7a');line(177,275,207,275,'#456d7a');
+ for(let i=0;i<5;i++)rect(18+i*12,236,4,3,i===1?'#d3b878':'#548b8c');
+ rect(0,312,240,114,'#182733');rect(0,316,240,4,'#3d5662');rect(19,326,202,79,'#101a22');rect(23,330,194,71,'#1a2a34');
+ rect(73,335,94,56,'#8d896e');rect(77,339,86,48,'#c4bea2');line(120,339,120,387,'#797966');
+ for(let i=0;i<4;i++)line(83,348+i*8,113,348+i*8,'#8e927f');txt('FIELD LOG',87,344,'#45565a',5);
+ rect(8,365,42,21,'#283e49');rect(190,365,42,21,'#283e49');for(let i=0;i<4;i++)rect(14+i*8,371,4,5,'#678a8d');
+ txt('O₂  98%',13,413,'#8bd8df',7);txt(`POWER  ${Math.round(power)}%`,169,413,'#8bd8df',7);txt('DEEP SPACE OBSERVATORY',59,17,'#6f939f',6);txt(`TARGET: ${activePlanet().name}`,12,232,'#9bbdc3',6);
+}
+function hexRgb(hex){return [parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];}
+function mixColor(a,b,t){const A=hexRgb(a),B=hexRgb(b);return `rgb(${A.map((v,i)=>Math.round(v+(B[i]-v)*t)).join(',')})`;}
+function noise2(x,y,seed){let n=Math.sin(x*12.9898+y*78.233+seed*37.719)*43758.5453;return n-Math.floor(n);}
+const sprites={};
+function hash3(x,y,z,s){const n=Math.sin(x*127.1+y*311.7+z*74.7+s*53.3)*43758.5453;return n-Math.floor(n);}
+function vnoise(x,y,z,s){const xi=Math.floor(x),yi=Math.floor(y),zi=Math.floor(z),xf=x-xi,yf=y-yi,zf=z-zi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf),w=zf*zf*(3-2*zf);let r=0;for(let a=0;a<2;a++)for(let b=0;b<2;b++)for(let c=0;c<2;c++)r+=hash3(xi+a,yi+b,zi+c,s)*(a?u:1-u)*(b?v:1-v)*(c?w:1-w);return r;}
+function fbm(x,y,z,s){let v=0,a=.5;for(let i=0;i<4;i++){v+=a*vnoise(x,y,z,s);x*=2.03;y*=2.03;z*=2.03;a*=.5;}return v;}
+// Гладкая планета: рельеф по 3D-шуму, освещение и атмосфера считаются попиксельно один раз и кэшируются.
+function makeSprite(index){
+ const p=planets[index],c=p.colors.map(hexRgb),N=360,cv=document.createElement('canvas');cv.width=cv.height=N;
+ const g=cv.getContext('2d'),img=g.createImageData(N,N),d=img.data,R=N/2-2;
+ for(let j=0;j<N;j++)for(let i=0;i<N;i++){
+  const nx=(i-N/2+.5)/R,ny=(j-N/2+.5)/R,q=nx*nx+ny*ny;if(q>1.02)continue;
+  const nz=Math.sqrt(Math.max(0,1-q)),k=(j*N+i)*4,sx=nx*2.2+index*7,sy=ny*2.2,sz=nz*2.2;
+  let t=fbm(sx,sy,sz,index);
+  if(p.kind==='gas')t=.5+.5*Math.sin(ny*9+fbm(sx*.6,sy*.6,sz*.6,index)*5);
+  else if(p.kind==='ice'||p.kind==='iceocean')t=Math.min(1,t*.7+(1-Math.abs(fbm(sx*1.5,sy*1.5,sz*1.5,index+3)*2-1))*.45);
+  else if(p.kind==='ocean')t=fbm(sx,sy*2,sz,index)>.52?.8:.15+t*.3;
+  const lit=Math.max(0,-nx*.48-ny*.30+nz*.83),sh=.16+.84*Math.pow(lit,.8),rim=Math.pow(1-nz,3);
+  const A=t<.5?c[0]:c[1],B=t<.5?c[1]:c[2],m=t<.5?t*2:(t-.5)*2;
+  for(let ch=0;ch<3;ch++)d[k+ch]=Math.min(255,(A[ch]+(B[ch]-A[ch])*m)*sh+rim*[120,200,215][ch]*(.25+lit*.75));
+  d[k+3]=Math.round(255*Math.max(0,Math.min(1,(1-Math.sqrt(q))*R/1.2+.5)));
+ }
+ g.putImageData(img,0,0);return cv;
+}
+const getSprite=i=>sprites[i]||(sprites[i]=makeSprite(i));
+let warm=0;(function pre(){if(warm<planets.length){getSprite(warm++);setTimeout(pre,40);}})();
+function drawPlanet(x,y,r,index=targetIndex){
+ const p=planets[index]||planets[0];
+ const hg=ctx.createRadialGradient(x,y,r*.9,x,y,r*1.7);hg.addColorStop(0,'rgba(130,211,222,.22)');hg.addColorStop(1,'rgba(130,211,222,0)');ctx.fillStyle=hg;ctx.fillRect(x-r*1.8,y-r*1.8,r*3.6,r*3.6);
+ const ring=(a,b)=>{ctx.save();ctx.strokeStyle='#d9b98f';for(const[w,al]of[[.14,.18],[.08,.5],[.03,.8]]){ctx.globalAlpha=al;ctx.lineWidth=r*w;ctx.beginPath();ctx.ellipse(x,y,r*1.4,r*.36,-.22,a,b);ctx.stroke();}ctx.restore();};
+ if(p.kind==='gas')ring(Math.PI,Math.PI*2);
+ const sz=r*360/178;ctx.drawImage(getSprite(index),x-sz/2,y-sz/2,sz,sz);
+ if(p.kind==='gas')ring(0,Math.PI);
+}
+
+function drawFlight(){
+ rect(0,0,W,H,'#050b15');
+ // Псевдо-3D: чем меньше z, тем дальше точка от центра экрана.
+ for(const s of stars){
+  if(thrusting&&!braking)s.z-=.008+speed*.018;else s.z-=.0015;
+  if(s.z<.18){s.z=1.75;s.x=(Math.random()*2-1);s.y=(Math.random()*2-1);}
+  const z=Math.max(.18,s.z);
+  const sx=W/2+((s.x-yaw*.55)/z)*58;
+  const sy=122+((s.y-pitch*.55)/z)*48;
+  if(sx>=0&&sx<W&&sy>=0&&sy<260){
+   const size=Math.max(1,Math.min(3,s.size/z));
+   ctx.fillStyle=`rgba(188,225,235,${Math.max(.35,1-z*.28)})`;ctx.beginPath();ctx.arc(sx,sy,size*.5,0,6.283);ctx.fill();
+   if(thrusting&&!braking&&speed>.35){line(sx,sy,sx-(s.x-yaw*.55)*speed*4,sy-(s.y-pitch*.55)*speed*4,'#557b8c');}
+  }
+ }
+ const px=W/2+(0.16-yaw)*105+Math.sin(frame*.0007+targetIndex)*14;
+ const py=122+(0.02-pitch)*82;
+ const radius=10+(1-distance)*54;
+ drawPlanet(px,py,radius,targetIndex);
+ if(thrusting&&!braking){const gg=ctx.createLinearGradient(0,285,0,225);gg.addColorStop(0,'rgba(139,216,223,.28)');gg.addColorStop(1,'rgba(139,216,223,0)');ctx.fillStyle=gg;ctx.fillRect(0,225,W,60);}
+ // Прицельная рамка и шкалы
+ ctx.strokeStyle='#76c5ca';ctx.globalAlpha=.75;ctx.strokeRect(108,110,24,24);ctx.globalAlpha=1;
+ line(120,99,120,106,'#76c5ca');line(120,138,120,145,'#76c5ca');line(97,122,104,122,'#76c5ca');line(136,122,143,122,'#76c5ca');
+ rect(0,0,W,25,'#0c1824');txt('FLIGHT / NAVIGATION',10,16,'#9bd5d8',7);if(damaged)txt('⚠ СБОЙ НАВИГАЦИИ',130,16,'#e6806a',7);
+ txt(activePlanet().name,10,67,'#e2d29d',8);txt(activePlanet().type,10,78,'#9bbfc7',6);
+ txt(`RANGE ${distance.toFixed(2)} u`,10,42,'#b6dfe0',7);txt(`SPEED ${speed.toFixed(2)} u/s`,10,53,'#b6dfe0',7);
+ txt(`YAW ${yaw.toFixed(2)}`,171,42,'#789eaa',6);txt(`PITCH ${pitch.toFixed(2)}`,171,53,'#789eaa',6);
+ // Нижняя часть кабины остаётся на месте, чтобы сохранить вид от первого лица.
+ rect(0,285,240,141,'#101e2a');rect(0,285,240,5,'#314654');rect(12,302,216,66,'#172c38');rect(18,308,204,52,'#091722');
+ txt('ASTR-01 / AUTOPILOT: MANUAL',28,323,'#8dcbd0',7);
+ txt(thrusting?'MAIN ENGINE: THRUST':braking?'MAIN ENGINE: BRAKING':'MAIN ENGINE: IDLE',28,341,thrusting?'#e3cf92':'#7ea5ad',6);
+ for(let i=0;i<10;i++){rect(28+i*18,350,12,3,i<Math.round(speed/3*10)?'#8bd8df':'#29404d');}
+ rect(0,376,240,50,'#172735');txt('O₂  98%',13,413,'#8bd8df',7);txt(`POWER  ${Math.round(power)}%`,169,413,'#8bd8df',7);
+ if(distance<.3){rect(55,67,130,18,'#0c2029');txt('ORBITAL APPROACH',66,79,'#e0d29b',8);}
+ if(distance<=.30&&activePlanet().land){rect(43,88,154,18,'#173329');txt('LANDING ZONE REACHED',55,100,'#b5e7c4',8);}
+ if(!activePlanet().land){rect(36,88,168,18,'#382a37');txt('NO SOLID SURFACE / GAS GIANT',44,100,'#e6c1d0',7);}
+}
+
+function drawWalk(){
+ // Потолок и пол рисуются ПЕРВЫМИ — иначе они перекроют стены.
+ let g1=ctx.createLinearGradient(0,0,0,H/2);g1.addColorStop(0,'#0a1520');g1.addColorStop(1,'#1a2c3a');ctx.fillStyle=g1;ctx.fillRect(0,0,W,H/2);g1=ctx.createLinearGradient(0,H/2,0,H);g1.addColorStop(0,'#1c2a30');g1.addColorStop(1,'#2e3f45');ctx.fillStyle=g1;ctx.fillRect(0,H/2,W,H/2);
+ for(let k=1;k<9;k++){
+  const y=H/2+k*k*3;
+  if(y<H)line(0,y,W,y,'#354b50');
+ }
+ for(let x=0;x<W;x+=24)line(W/2,H/2,x,H,'#354b50');
+
+ // Лучи строят стены коридоров и помещений.
+ const rays=240,strip=W/rays,depths=new Array(rays).fill(12);
+ for(let i=0;i<rays;i++){
+  const camera=(i/rays-.5)*1.05,angle=walkAngle+camera;
+  const dx=Math.cos(angle),dy=Math.sin(angle);
+  let mx=Math.floor(walkX),my=Math.floor(walkY);
+  const ddx=Math.abs(1/(dx||.0001)),ddy=Math.abs(1/(dy||.0001));
+  const sx=dx<0?-1:1,sy=dy<0?-1:1;
+  let ax=(dx<0?walkX-mx:mx+1-walkX)*ddx;
+  let ay=(dy<0?walkY-my:my+1-walkY)*ddy;
+  let side=0,hit=false,d=12;
+  for(let n=0;n<32;n++){
+   if(ax<ay){ax+=ddx;mx+=sx;side=0;}else{ay+=ddy;my+=sy;side=1;}
+   if(my<0||my>=shipMap.length||mx<0||mx>=shipMap[0].length){hit=true;break;}
+   if(shipMap[my][mx]==='#'){hit=true;break;}
+  }
+  if(hit)d=Math.max(.12,side===0?ax-ddx:ay-ddy);
+  depths[i]=d;
+  const wallH=Math.min(H,(H*.82)/d),top=(H-wallH)/2;
+  const light=Math.max(28,145-d*8-(side?24:0));
+  rect(i*strip,top,strip+1,wallH,`rgb(${Math.floor(light*.48)},${Math.floor(light*.72)},${Math.floor(light*.82)})`);
+
+  // Вертикальные ребра панелей и световые полосы на стенах.
+  if(i%24===0&&d<7)rect(i*strip,top+wallH*.12,2,wallH*.76,'#294957');
+  if(i%48===0&&d<5)rect(i*strip,top+wallH*.2,strip+1,3,'#80cbd0');
+ }
+
+ // Предметы интерьера рисуются поверх стен с проверкой глубины.
+ const props=[
+  {x:2.5,y:1.7,type:'screen',label:'НАВИГАЦИЯ'},
+  {x:7.5,y:1.7,type:'cabinet',label:'ШКАФ ОБОРУДОВАНИЯ'},
+  {x:8.5,y:5.5,type:'console',label:'НАУЧНАЯ ЛАБОРАТОРИЯ'},
+  {x:2.5,y:7.5,type:'bed',label:'КАЮТА ОТДЫХА'},
+  {x:6.5,y:7.5,type:'crate',label:'ХРАНИЛИЩЕ ОБРАЗЦОВ'}
+ ];
+ const visible=[];
+ for(const p of props.concat(EXTRA)){
+  const dx=p.x-walkX,dy=p.y-walkY,d=Math.hypot(dx,dy);
+  let a=Math.atan2(dy,dx)-walkAngle;
+  while(a>Math.PI)a-=Math.PI*2;while(a< -Math.PI)a+=Math.PI*2;
+  if(Math.abs(a)<.58&&d>.35){
+   const sx=W/2+Math.tan(a)*105;
+   const size=Math.min(110,58/d);
+   const ray=Math.max(0,Math.min(rays-1,Math.floor(sx/W*rays)));
+   if(d<depths[ray]+.35)visible.push({...p,d,sx,size});
+  }
+ }
+ visible.sort((a,b)=>b.d-a.d);
+ for(const o of visible){
+  const x=o.sx-o.size*.45,y=H/2-o.size*.42,w=o.size*.9,h=o.size*.85;
+  if(o.type==='screen'){
+   rect(x,y,w,h,'#344b54');rect(x+3,y+3,w-6,h*.52,'#071723');
+   for(let n=0;n<4;n++)line(x+6,y+8+n*4,x+w-6,y+8+n*4,'#58aab1');
+   rect(x+w*.38,y+h*.6,w*.24,h*.38,'#667d80');
+  }else if(o.type==='cabinet'){
+   rect(x,y,w,h,'#42545a');rect(x+4,y+4,w-8,h-8,'#1b303a');
+   for(let n=0;n<3;n++){line(x+5,y+10+n*10,x+w-5,y+10+n*10,'#789094');rect(x+w-9,y+7+n*10,3,3,'#d3bb78');}
+  }else if(o.type==='console'){
+   rect(x,y+h*.25,w,h*.75,'#52636a');rect(x+3,y+h*.3,w-6,h*.36,'#071923');
+   rect(x+7,y+h*.36,w*.22,3,'#83d2d1');rect(x+7,y+h*.46,w*.48,2,'#4d9aa1');
+   for(let n=0;n<3;n++)rect(x+6+n*9,y+h*.8,5,3,'#b4a36f');
+  }else if(o.type==='bed'){
+   rect(x,y+h*.35,w,h*.65,'#41545c');rect(x+3,y+h*.22,w*.34,h*.25,'#a7b4ae');
+   rect(x+3,y+h*.48,w-6,h*.4,'#526d75');
+  }else if(EXTRA_TYPES.includes(o.type)){drawExtra(o,x,y,w,h);
+  }else{
+   rect(x,y,w,h,'#58635e');rect(x+4,y+4,w-8,h-8,'#263b3b');
+   rect(x+8,y+8,w-16,h*.22,'#91aaa0');rect(x+8,y+h*.55,w-16,3,'#b6a879');
+  }
+ }
+ rect(0,0,W,24,'#0c1824');txt('SHIP INTERIOR / DECK 01',8,16,'#9bd5d8',7);
+ rect(8,31,112,29,'#0b2029');txt(`POS ${walkX.toFixed(1)}, ${walkY.toFixed(1)}`,14,43,'#a8d4d5',6);
+ txt(`O2 98%  |  POWER ${Math.round(power)}%`,14,54,'#8bd8df',6);
+ const near=nearestShipObject();
+ if(near&&near.d<1.65){rect(37,72,166,24,'#0b2029');txt(near.name.toUpperCase(),43,87,'#d3dcae',6);$('interactBtn').textContent='ОСМОТРЕТЬ: '+near.name.toUpperCase();$('interactBtn').hidden=false;}
+ else $('interactBtn').hidden=true;
+ rect(0,389,W,37,'#101e2a');txt('ПРОГУЛКА ПО КОРАБЛЮ',63,410,'#8bd8df',7);
+}
+function drawSurface(){
+ rect(0,0,W,H,'#091522');
+ // Небо, далёкие горы и поверхность неизвестной планеты.
+ const p=planets[surfacePlanetIndex];
+ const sky=ctx.createLinearGradient(0,0,0,280);
+ sky.addColorStop(0,p.sky[0]);sky.addColorStop(1,p.sky[1]);
+ ctx.fillStyle=sky;ctx.fillRect(0,0,W,280);
+ {const sg=ctx.createRadialGradient(187,57,2,187,57,40);sg.addColorStop(0,'rgba(255,235,190,.9)');sg.addColorStop(.25,'rgba(230,200,150,.35)');sg.addColorStop(1,'rgba(230,200,150,0)');ctx.fillStyle=sg;ctx.fillRect(140,20,100,80);ctx.fillStyle='#f0dfb8';ctx.beginPath();ctx.arc(187,57,10,0,6.283);ctx.fill();}
+ for(const[L,col,amp,par]of[[0,'#2c3b47',55,4],[1,'#3b4b55',38,8]]){ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(0,206);for(let x=0;x<=W;x+=4){const u=(x+surfaceX*par*10)/60+L*9;ctx.lineTo(x,205-amp*(.35+.65*(Math.sin(u)*.5+Math.sin(u*2.3+1)*.3+.8)/1.6));}ctx.lineTo(W,206);ctx.closePath();ctx.fill();}
+ rect(0,205,W,221,p.ground);
+ for(let i=0;i<18;i++){
+  const z=(i*37+Math.floor(surfaceZ*9))%180;
+  const x=(i*61+Math.floor(surfaceX*13))%250-5;
+  const y=210+z;
+  if(y<420){rect(x,y,2+(i%3),1+(i%2),p.colors[2]);}
+ }
+ drawFormations();drawSamples();surfaceFX();
+ // Тень от исследовательского корабля вдали.
+ rect(16,191,30,7,'#29353c');rect(23,184,16,7,'#29353c');rect(28,181,6,3,'#a5a18d');
+ rect(0,0,W,24,'#0c1824');txt(`SURFACE / ${p.name}`,8,16,'#c8d7cf',7);
+ txt(`COORD ${surfaceX.toFixed(1)} / ${surfaceZ.toFixed(1)}`,10,42,'#e0d5c0',7);
+ rect(0,389,W,37,'#101e2a');txt('ПОВЕРХНОСТЬ / ИССЛЕДОВАНИЕ',48,410,'#e0d5c0',7);
+}
+
+// ===== v08: образцы, звук, сюжет =====
+let got={};try{got=JSON.parse(LS.getItem('astro_samples')||'{}')}catch(e){}
+const total=()=>Object.values(got).reduce((a,b)=>a+b.length,0);
+const explored=()=>Object.values(got).filter(a=>a.length>=5).length;
+const sampleList=pi=>Array.from({length:5},(_,i)=>({i,x:((i*37+pi*11)%9-4)*.9,z:2.2+i*2.3+((pi+i)%3)*.5}));
+let nearSample=null,AC;
+function snd(f,d=.08,type='sine',v=.05){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(AC.destination);o.start();o.stop(t+d);}catch(e){}}
+document.addEventListener('pointerdown',e=>{const b=e.target.closest&&e.target.closest('button');if(b)snd(b.id==='interactBtn'?880:440,.07,'triangle');});
+const centerMsg=()=>{const t=total();return t<5?'Последнее сообщение Центра: «Продолжайте наблюдение. Мы будем ждать ваши данные».':t<15?'Центр: «Образцы приняты. Странно: минералы излучают слабый периодический сигнал».':t<30?'Центр: «Сигнал не природный. Источник за пределами сектора. Продолжайте сбор».':'Центр: «…вы слышите нас? Образцы складываются в карту. Это маршрут. Кто-то оставил его для вас».';};
+function collectSample(){
+ if(!nearSample)return;const pi=surfacePlanetIndex;(got[pi]=got[pi]||[]).push(nearSample.i);
+ try{LS.setItem('astro_samples',JSON.stringify(got));}catch(e){}
+ snd(660,.12,'triangle',.07);setTimeout(()=>snd(990,.25,'triangle',.07),90);navigator.vibrate&&navigator.vibrate(30);
+ const n=got[pi].length;showToast(n>=5?`${planets[pi].name}: ПЛАНЕТА ПОЛНОСТЬЮ ИССЛЕДОВАНА!`:`ОБРАЗЕЦ ${n}/5 СОБРАН.`);
+}
+function drawSamples(){
+ const pi=surfacePlanetIndex,col=planets[pi].colors[2];nearSample=null;let best=9;
+ const L=sampleList(pi).filter(o=>!(got[pi]||[]).includes(o.i)).map(o=>({...o,dx:o.x-surfaceX,dz:o.z-surfaceZ})).filter(o=>o.dz>-.6).sort((a,b)=>b.dz-a.dz);
+ for(const o of L){
+  const k=1/(1+Math.max(0,o.dz)*.6),px=120+o.dx*112*k,py=205+170*k,sz=22*k+3;
+  ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(px,py,sz*.7,sz*.18,0,0,6.283);ctx.fill();
+  const pulse=.55+.25*Math.sin(frame*.06+o.i),g=ctx.createRadialGradient(px,py-sz,1,px,py-sz,sz*2.4);
+  g.addColorStop(0,`rgba(180,240,235,${pulse})`);g.addColorStop(1,'rgba(180,240,235,0)');ctx.fillStyle=g;ctx.fillRect(px-sz*2.4,py-sz*3.4,sz*4.8,sz*4.8);
+  ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(px,py-sz*2);ctx.lineTo(px+sz*.5,py-sz*.9);ctx.lineTo(px+sz*.3,py);ctx.lineTo(px-sz*.3,py);ctx.lineTo(px-sz*.5,py-sz*.9);ctx.closePath();ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.45)';ctx.beginPath();ctx.moveTo(px,py-sz*2);ctx.lineTo(px+sz*.5,py-sz*.9);ctx.lineTo(px,py-sz*.7);ctx.closePath();ctx.fill();
+  const d=Math.hypot(o.dx,o.dz);if(Math.abs(o.dz)<.9&&Math.abs(o.dx)<.8&&d<best){best=d;nearSample=o;}
+ }
+ for(let i=0;i<16;i++){const x=(i*47+frame*(.2+i%3*.1))%250,y=215+(i*29)%170+Math.sin(frame*.02+i)*3;ctx.fillStyle='rgba(220,200,170,.25)';ctx.beginPath();ctx.arc(x,y,.9+i%2*.5,0,6.283);ctx.fill();}
+ $('interactBtn').hidden=!nearSample;if(nearSample)$('interactBtn').textContent='СОБРАТЬ ОБРАЗЕЦ';
+ txt(`ОБРАЗЦЫ ${(got[pi]||[]).length}/5  |  ВСЕГО ${total()}`,10,53,'#b5e7c4',7);
+}
+// ===== v12: тёмные коридоры, скример, стуки в окно =====
+let blackout=false,blackEnd=0,darkTimer=1800+Math.random()*1800,flickerUntil=0,scareUntil=0,scareStart=0,lastScare=-99999,nextBlackScare=0,shadowUntil=0,shadowX=14,knockTimer=1500+Math.random()*2500,knockAt=-9999,smudgeUntil=0,hintN=0,scareOn=LS.getItem('astro_scare')!=='0';
+function noiseBurst(d,fr,v,q=1){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const n=Math.floor(AC.sampleRate*d),b=AC.createBuffer(1,n,AC.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=Math.random()*2-1;const sr=AC.createBufferSource(),fl=AC.createBiquadFilter(),g=AC.createGain(),t=AC.currentTime;sr.buffer=b;fl.type='bandpass';fl.frequency.value=fr;fl.Q.value=q;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);sr.connect(fl);fl.connect(g);g.connect(AC.destination);sr.start();}catch(e){}}
+function knock(n){for(let i=0;i<n;i++)setTimeout(()=>{snd(95,.25,'sine',.35);noiseBurst(.08,400,.3,1);},i*(260+Math.random()*120));}
+function creep(){const r=Math.random();if(r<.4)[0,280,560,840].forEach(d=>setTimeout(()=>snd(55,.18,'sine',.14),d));else if(r<.75)noiseBurst(1.2,1800,.05,8);else{shadowUntil=frame+8;shadowX=Math.random()<.5?14:226;snd(48,.5,'sawtooth',.05);}}
+function scare(){scareStart=frame;scareUntil=frame+40;lastScare=frame;noiseBurst(.7,900,.5,.7);snd(880,.6,'sawtooth',.18);setTimeout(()=>snd(1320,.5,'square',.1),40);snd(66,.8,'sawtooth',.2);navigator.vibrate&&navigator.vibrate([80,40,120]);}
+const WLINES=['За стеклом никого. Только звёзды.','Пусто. Даже отражения нет.','Вы смотрите долго. Ничего не движется.','Никого. Но на стекле, кажется, остался след…'];
+function lookWindow(){
+ const ago=frame-knockAt;
+ showToast(ago<900?'Вы подошли к окну. Никого. Только холодные звёзды.':WLINES[Math.floor(Math.random()*WLINES.length)]);
+ if(ago<900&&Math.random()<.5)smudgeUntil=frame+900;
+ setTimeout(()=>{if(mode==='cabin'||mode==='walk')knock(1);},3500+Math.random()*3000);
+}
+function horrorTick(){
+ if(mode==='walk'){
+  if(!blackout){
+   if(--darkTimer<=0){blackout=true;blackEnd=frame+1500;flickerUntil=frame+80;nextBlackScare=frame+300+Math.random()*900;showToast('СВЕТ В КОРИДОРЕ ПОГАС. ДОЙДИТЕ ДО АВАРИЙНОГО ПИТАНИЯ.');snd(70,.8,'sawtooth',.06);}
+   else if(frame%900===0&&Math.random()<.3)creep();
+  }else if(frame>blackEnd){blackout=false;darkTimer=2400+Math.random()*3000;flickerUntil=frame+60;showToast('АВАРИЙНОЕ ПИТАНИЕ ВОССТАНОВЛЕНО.');}
+  else{
+   if(frame%420===0&&Math.random()<.6)creep();
+   if(frame>=nextBlackScare){nextBlackScare=frame+400+Math.random()*900;if(scareOn&&frame-lastScare>5400&&Math.random()<.45)scare();else creep();}
+  }
+ }else if(blackout){blackout=false;darkTimer=1800+Math.random()*1800;}
+ if((mode==='cabin'||mode==='walk'||mode==='flight')&&--knockTimer<=0){knockTimer=1500+Math.random()*2700;knock(2+Math.floor(Math.random()*2));knockAt=frame;if(hintN++<3)showToast(mode==='cabin'?'…стук снаружи, в стекло. Коснитесь окна, чтобы посмотреть.':'…стук по обшивке снаружи.');}
+}
+function horrorFX(){
+ if(mode==='walk'){
+  if((blackout)||frame<flickerUntil&&Math.random()<.5){const g=ctx.createRadialGradient(W/2,H/2+20,6,W/2,H/2+20,blackout?105:200);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(.55,'rgba(0,0,6,.78)');g.addColorStop(1,'rgba(0,0,4,.97)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}
+  if(frame<shadowUntil){ctx.fillStyle='rgba(110,150,160,.16)';ctx.fillRect(shadowX-26,H/2-90,52,170);ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(shadowX,H/2+10,15,58,0,0,6.283);ctx.fill();ctx.beginPath();ctx.arc(shadowX,H/2-52,10,0,6.283);ctx.fill();}
+ }
+ if(mode==='cabin'&&frame<smudgeUntil){ctx.fillStyle=`rgba(210,225,235,${Math.min(.35,(smudgeUntil-frame)/300)})`;ctx.beginPath();ctx.ellipse(150,122,13,16,0,0,6.283);ctx.fill();for(let i=0;i<4;i++){ctx.beginPath();ctx.ellipse(141+i*6.5,100-(i%3===1?4:0),2.6,9,(i-1.5)*.12,0,6.283);ctx.fill();}}
+ if(frame<scareUntil){
+  const k=(frame-scareStart)/40,R=70*(1+k*.6),j=()=>(Math.random()-.5)*6,cx=W/2+j(),cy=H/2-10+j();
+  ctx.fillStyle='rgba(0,0,0,.93)';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#cfd2c4';ctx.beginPath();ctx.ellipse(cx,cy,R*.6,R,0,0,6.283);ctx.fill();
+  ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(cx-R*.25,cy-R*.2,R*.12,R*.2,0,0,6.283);ctx.ellipse(cx+R*.25,cy-R*.2,R*.12,R*.2,0,0,6.283);ctx.fill();
+  ctx.beginPath();ctx.ellipse(cx,cy+R*.45,R*.2,R*(.3+.12*Math.random()),0,0,6.283);ctx.fill();
+  ctx.fillStyle='rgba(160,0,0,.28)';ctx.fillRect(0,0,W,H);
+  if(frame-scareStart<3){ctx.fillStyle='rgba(255,255,255,.7)';ctx.fillRect(0,0,W,H);}
+ }
+}
+canvas.addEventListener('click',e=>{if(mode!=='cabin')return;const r=canvas.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*H;if(x>17&&x<223&&y>35&&y<205)lookWindow();});
+$('panel').addEventListener('click',e=>{if(e.target.id!=='skrBtn')return;scareOn=!scareOn;sv('astro_scare',scareOn?'1':'0');e.target.textContent='СКРИМЕРЫ: '+(scareOn?'ВКЛ':'ВЫКЛ');});
+// ===== v11: тревожная музыка (генерируется в реальном времени) =====
+let musicOn=LS.getItem('astro_music')!=='0',MB=null,tension=0;
+function note(f,d,v,type='sine'){const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.05);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(MB);g.connect(MB.dly);o.start(t);o.stop(t+d+.1);}
+const thump=()=>{note(52,.3,.22);setTimeout(()=>note(46,.35,.16),230);};
+function startMusic(){
+ if(MB||!musicOn)return;
+ try{
+  AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();
+  MB=AC.createGain();const t0=AC.currentTime;MB.gain.setValueAtTime(0,t0);MB.gain.linearRampToValueAtTime(1,t0+4);MB.connect(AC.destination);
+  const dly=AC.createDelay(2),fb=AC.createGain(),dl=AC.createBiquadFilter();dly.delayTime.value=.55;fb.gain.value=.5;dl.type='lowpass';dl.frequency.value=1800;dly.connect(dl);dl.connect(fb);fb.connect(dly);dl.connect(MB);MB.dly=dly;
+  const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=200;lp.Q.value=4;lp.connect(MB);MB.lp=lp;
+  [[41.2,'sawtooth',.5],[43.4,'sawtooth',.5],[58.3,'triangle',.35],[82.4,'sine',.2]].forEach(([fr,ty,g])=>{const o=AC.createOscillator(),gg=AC.createGain();o.type=ty;o.frequency.value=fr;gg.gain.value=g*.12;o.connect(gg);gg.connect(lp);o.start();});
+  const lfo=AC.createOscillator(),lg=AC.createGain();lfo.frequency.value=.07;lg.gain.value=90;lfo.connect(lg);lg.connect(lp.frequency);lfo.start();
+  const nb=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate),nd=nb.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;
+  const ns=AC.createBufferSource(),bp=AC.createBiquadFilter(),ng=AC.createGain(),l2=AC.createOscillator(),l2g=AC.createGain();
+  ns.buffer=nb;ns.loop=true;bp.type='bandpass';bp.Q.value=6;bp.frequency.value=600;ng.gain.value=.02;ns.connect(bp);bp.connect(ng);ng.connect(MB);ns.start();MB.ng=ng;
+  l2.frequency.value=.05;l2g.gain.value=400;l2.connect(l2g);l2g.connect(bp.frequency);l2.start();
+ }catch(e){MB=null;}
+}
+function musicTick(){
+ if(!MB||!musicOn)return;
+ const n=1-(.5+.5*Math.cos(frame/5400*6.283));
+ const t=(power<40?.4:0)+(damaged?.35:0)+(mode==='flight'?Math.min(.3,speed*.1):0)+(mode==='surface'?n*.35:0)+(mode==='walk'?.1:0)+(blackout?.45:0);
+ tension+=(Math.min(1,t)-tension)*.02;
+ if(frame%10===0){const tt=AC.currentTime;MB.lp.frequency.setTargetAtTime(160+tension*500,tt,1);MB.ng.gain.setTargetAtTime(.015+tension*.05,tt,1);}
+ if(tension>.3&&frame%Math.round(90-tension*40)===0)thump();
+ if(frame%Math.round(220-tension*90)===0&&Math.random()<.7){const fr=[311.1,329.6,466.2,622.3,659.3,932.3][Math.floor(Math.random()*6)];note(fr,4,.05+tension*.04);note(fr*(Math.random()<.5?1.0595:1.4142),4,.04);}
+}
+document.addEventListener('pointerdown',startMusic);document.addEventListener('click',startMusic);
+$('panel').addEventListener('click',e=>{if(e.target.id!=='musBtn')return;musicOn=!musicOn;sv('astro_music',musicOn?'1':'0');if(musicOn){if(MB)MB.gain.setTargetAtTime(1,AC.currentTime,.3);else startMusic();}else if(MB)MB.gain.setTargetAtTime(0,AC.currentTime,.3);e.target.textContent='МУЗЫКА: '+(musicOn?'ВКЛ':'ВЫКЛ');});
+// ===== v10: наука, энергия, поломки, погода, день/ночь =====
+const sv=(k,v)=>{try{LS.setItem(k,v)}catch(e){}};
+let cat=[];try{cat=JSON.parse(LS.getItem('astro_cat')||'[]')}catch(e){}
+let rp=+LS.getItem('astro_rp')||0,analyzed=+LS.getItem('astro_an')||0,power=100,damaged=false;
+const PD={rock:[.9,-40,'N₂ 71% · CO₂ 24% · Ar 4%'],ice:[.6,-120,'N₂ 88% · CH₄ 7%'],desert:[.8,62,'CO₂ 92% · N₂ 3%'],ocean:[1.1,18,'N₂ 76% · O₂ 19% · пар H₂O'],swamp:[1,31,'N₂ 64% · CH₄ 12% · H₂S 3%'],gas:[2.4,-150,'H₂ 83% · He 15% · CH₄ 2%'],dark:[.7,-95,'Ar 55% · N₂ 40%'],iceocean:[.8,-60,'N₂ 80% · O₂ 4%'],iron:[1.3,85,'CO₂ 60% · SO₂ 22%'],green:[1,9,'N₂ 70% · CO₂ 18% · O₂ 9%']};
+function pdStats(){
+ const d=PD[activePlanet().kind];
+ if(distance>=.6)return '<div class="stat"><span>Гравитация / температура / атмосфера</span><b>подлетите ближе</b></div>';
+ if(!cat.includes(targetIndex)){cat.push(targetIndex);sv('astro_cat',JSON.stringify(cat));}
+ return `<div class="stat"><span>Гравитация</span><b>${d[0]} g</b></div><div class="stat"><span>Температура</span><b>${d[1]} °C</b></div><div class="stat"><span>Атмосфера</span><b>${d[2]}</b></div>`;
+}
+const labMsg=()=>analyzed<3?'Состав минералов: кремний, железо, следы неизвестного сплава.':analyzed<8?'Кристаллы хранят периодический сигнал. Каждый образец — фрагмент одной последовательности.':'Последовательность складывается в координаты. Но чего именно?';
+function openLab(){
+ const av=total()-analyzed;
+ openPanel(`<h2>ЛАБОРАТОРИЯ</h2><div class="entry"><div class="stat"><span>Образцов в хранилище</span><b>${av}</b></div><div class="stat"><span>Проанализировано</span><b>${analyzed}</b></div><div class="stat"><span>Очки исследований</span><b>${rp}</b></div><div class="stat"><span>Бонус зарядки батарей</span><b>+${rp}%</b></div></div><p>${labMsg()}</p><button id="anaBtn" style="width:100%">АНАЛИЗИРОВАТЬ ОБРАЗЕЦ</button>`);
+ $('anaBtn').onclick=()=>{if(total()-analyzed<=0){showToast('НЕТ НЕПРОАНАЛИЗИРОВАННЫХ ОБРАЗЦОВ. СОБЕРИТЕ ИХ НА ПЛАНЕТАХ.');return;}analyzed++;rp+=10;sv('astro_an',analyzed);sv('astro_rp',rp);snd(520,.2,'triangle',.06);showToast('АНАЛИЗ ЗАВЕРШЁН: +10 ОЧКОВ ИССЛЕДОВАНИЙ.');openLab();};
+}
+function repair(){damaged=false;snd(700,.15,'triangle',.06);setTimeout(()=>snd(940,.2,'triangle',.06),120);showToast('НАВИГАЦИЯ ВОССТАНОВЛЕНА.');}
+function lighting(){
+ if(mode==='walk'){const v=ctx.createRadialGradient(W/2,H/2,40,W/2,H/2,300);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,4,10,.6)');ctx.fillStyle=v;ctx.fillRect(0,0,W,H);}
+ if((mode==='cabin'||mode==='walk')&&power<40){ctx.fillStyle=`rgba(0,4,12,${(1-power/40)*.55*(.85+.15*Math.sin(frame*.7))})`;ctx.fillRect(0,0,W,H);}
+}
+function drawFormations(){
+ const pi=surfacePlanetIndex,k=planets[pi].kind,c=planets[pi].colors;
+ for(let i=7;i>=0;i--){
+  const dx=((i*53+pi*17)%14-7)*.9-surfaceX,dz=1.5+i*1.9+(pi%3)*.4-surfaceZ;if(dz<-.5)continue;
+  const q=1/(1+Math.max(0,dz)*.6),px=120+dx*112*q,py=205+170*q,sz=34*q+4;
+  ctx.fillStyle='rgba(0,0,0,.25)';ctx.beginPath();ctx.ellipse(px,py,sz*.6,sz*.14,0,0,6.283);ctx.fill();
+  ctx.fillStyle=c[1];ctx.beginPath();
+  if(k==='desert'||k==='iron'||k==='gas'){ctx.ellipse(px,py,sz*.9,sz*.55,0,Math.PI,0);ctx.closePath();ctx.fill();}
+  else if(k==='swamp'||k==='green'||k==='ocean'){ctx.rect(px-sz*.08,py-sz*.9,sz*.16,sz*.9);ctx.fill();ctx.fillStyle=c[2];ctx.beginPath();ctx.ellipse(px,py-sz*.95,sz*.5,sz*.3,0,0,6.283);ctx.fill();}
+  else{ctx.moveTo(px-sz*.25,py);ctx.lineTo(px,py-sz*2.2);ctx.lineTo(px+sz*.25,py);ctx.closePath();ctx.fill();ctx.fillStyle='rgba(255,255,255,.25)';ctx.beginPath();ctx.moveTo(px,py-sz*2.2);ctx.lineTo(px+sz*.25,py);ctx.lineTo(px,py);ctx.closePath();ctx.fill();}
+ }
+}
+function surfaceFX(){
+ const k=planets[surfacePlanetIndex].kind,n=1-(.5+.5*Math.cos(frame/5400*6.283));
+ if(n>.02){ctx.fillStyle=`rgba(4,8,26,${n*.62})`;ctx.fillRect(0,0,W,389);ctx.fillStyle='#dfeaf2';for(let i=0;i<40;i++){ctx.globalAlpha=n*(.5+.5*Math.sin(frame*.05+i));ctx.fillRect((i*61)%W,(i*37)%120,1.2,1.2);}ctx.globalAlpha=1;}
+ const snow=k==='ice'||k==='iceocean'||k==='dark',rain=k==='ocean'||k==='swamp'||k==='green',dust=k==='desert'||k==='iron';
+ if(snow||rain||dust){
+  ctx.strokeStyle=rain?'rgba(170,210,230,.35)':'rgba(240,225,200,.3)';ctx.fillStyle='rgba(235,245,250,.7)';ctx.lineWidth=.7;
+  for(let i=0;i<60;i++){const sp=.6+i%5*.25,y=(i*53+frame*(snow?.6:rain?5:1)*sp)%389,x=(i*97+frame*(dust?4*sp:snow?.3:1.5))%245;
+   ctx.beginPath();if(snow){ctx.arc(x,y,1+i%2*.5,0,6.283);ctx.fill();}else if(rain){ctx.moveTo(x,y);ctx.lineTo(x-2,y+7);ctx.stroke();}else{ctx.moveTo(x,y);ctx.lineTo(x+9,y);ctx.stroke();}}
+ }
+ if(k==='swamp'){const fg=ctx.createLinearGradient(0,190,0,260);fg.addColorStop(0,'rgba(150,170,130,0)');fg.addColorStop(.5,'rgba(150,170,130,.25)');fg.addColorStop(1,'rgba(150,170,130,0)');ctx.fillStyle=fg;ctx.fillRect(0,190,W,70);}
+}
+const EXTRA=[
+{x:4.5,y:1.7,type:'plant',name:'Гидропонная грядка',detail:'Салат и мята растут под фиолетовыми лампами. Единственный зелёный уголок на борту.'},
+{x:9.5,y:1.7,type:'coffee',name:'Кухонный модуль',detail:'Кофемашина и запас сублимированной еды на 40 дней. Кофе отвратительный, но горячий.'},
+{x:3.5,y:3.5,type:'window',name:'Иллюминатор',detail:'За стеклом холодные звёзды. Одна из них мигает слишком ровно.'},
+{x:7.5,y:3.5,type:'drone',name:'Дрон-помощник',detail:'Дрон-техник «Бит» проверяет герметичность. Иногда тихо щёлкает, будто думает.'},
+{x:2.5,y:5.5,type:'medbed',name:'Медотсек',detail:'Аптечка, диагност и койка. Все показатели в норме.'},
+{x:6.5,y:5.5,type:'bench',name:'Верстак',detail:'Паяльник, запасные платы и инструменты для полевого ремонта.'},
+{x:10.5,y:4.5,type:'airlock',name:'Шлюз',detail:'Внешний шлюз закрыт. Скафандр на месте. Давление снаружи: ноль.'},
+{x:10.5,y:7.5,type:'tanks',name:'Баллоны с кислородом',detail:'Три резервных баллона. Запас на 11 суток сверх основной системы.'},
+{x:4.5,y:8.5,type:'printer',name:'3D-принтер',detail:'Печатает запчасти из переработанного пластика. Сейчас печатает маленькую шахматную фигуру.'},
+{x:8.5,y:7.5,type:'radio',name:'Радиостанция',detail:'Дальняя связь. В эфире только шум и редкие ритмичные щелчки.'}
+];
+const EXTRA_TYPES=EXTRA.map(e=>e.type);
+function drawExtra(o,x,y,w,h){
+ const t=o.type,blink=Math.sin(frame*.1)>0;
+ if(t==='plant'){rect(x+w*.2,y+h*.62,w*.6,h*.38,'#4a5a5e');rect(x+w*.15,y+h*.58,w*.7,3,'#6b7f80');ctx.fillStyle='#5f9a5c';for(let n=0;n<5;n++){ctx.beginPath();ctx.ellipse(x+w*(.2+n*.15),y+h*(.45-(n%2)*.15),w*.09,h*.2,(n-2)*.3,0,6.283);ctx.fill();}rect(x+w*.1,y+h*.5,w*.8,2,'#b36bd0');}
+ else if(t==='coffee'){rect(x,y+h*.2,w,h*.8,'#4b5a60');rect(x+w*.1,y+h*.3,w*.8,h*.3,'#0b1a22');rect(x+w*.4,y+h*.65,w*.2,h*.2,'#d8d2b8');rect(x+w*.1,y+h*.35,w*.3,2,blink?'#e3cf92':'#7a6a40');}
+ else if(t==='window'){rect(x,y,w,h,'#3d5059');ctx.fillStyle='#050b15';ctx.beginPath();ctx.ellipse(x+w/2,y+h/2,w*.4,h*.4,0,0,6.283);ctx.fill();for(let n=0;n<6;n++)rect(x+w*(.25+(n*37%50)/100),y+h*(.3+(n*23%40)/100),1.2,1.2,'#bfe3ee');}
+ else if(t==='drone'){const b=Math.sin(frame*.06)*h*.06,cx=x+w/2,cy=y+h*.45+b;ctx.fillStyle='#8fa3a8';ctx.beginPath();ctx.ellipse(cx,cy,w*.32,h*.22,0,0,6.283);ctx.fill();ctx.fillStyle='#0b1a22';ctx.beginPath();ctx.arc(cx,cy,h*.09,0,6.283);ctx.fill();ctx.fillStyle=blink?'#7fe0e8':'#2c6a70';ctx.beginPath();ctx.arc(cx,cy,h*.045,0,6.283);ctx.fill();rect(x+w*.2,y+h*.22+b,w*.6,2,'#b6c6c6');}
+ else if(t==='medbed'){rect(x,y+h*.4,w,h*.6,'#d6dcdc');rect(x+3,y+h*.3,w*.3,h*.15,'#eef3f3');rect(x+w*.7,y+h*.1,w*.25,h*.3,'#0b2029');rect(x+w*.73,y+h*.15,w*.19,2,'#7fe0e8');rect(x+w*.4,y+h*.5,w*.08,h*.25,'#c04a4a');rect(x+w*.34,y+h*.57,w*.2,h*.08,'#c04a4a');}
+ else if(t==='bench'){rect(x,y+h*.45,w,h*.12,'#6a5d4a');rect(x+w*.05,y+h*.57,w*.08,h*.43,'#3d4a50');rect(x+w*.87,y+h*.57,w*.08,h*.43,'#3d4a50');rect(x+w*.1,y+h*.15,w*.8,h*.3,'#2a3c44');for(let n=0;n<4;n++)rect(x+w*(.18+n*.18),y+h*.2,2,h*.2,'#b4a36f');}
+ else if(t==='airlock'){rect(x,y,w,h,'#5a666a');rect(x+w*.12,y+h*.08,w*.76,h*.9,'#2b373c');rect(x+w*.38,y+h*.3,w*.24,h*.24,'#0b2029');ctx.strokeStyle='#d3bb78';ctx.lineWidth=1.5;ctx.strokeRect(x+w*.12,y+h*.08,w*.76,h*.9);rect(x+w*.4,y+h*.02,w*.2,3,blink?'#d46a4a':'#6a2a22');}
+ else if(t==='tanks'){for(let n=0;n<3;n++){const tx=x+w*(.08+n*.3);rect(tx,y+h*.2,w*.24,h*.8,'#3f7f8a');rect(tx,y+h*.2,w*.24,3,'#9fd4da');rect(tx+w*.08,y+h*.08,w*.08,h*.12,'#aab4b8');}}
+ else if(t==='printer'){rect(x,y+h*.15,w,h*.85,'#40505a');rect(x+w*.1,y+h*.25,w*.8,h*.55,'#0b1a22');rect(x+w*.35,y+h*.55,w*.3,h*.2,'#d9a06a');rect(x+w*.1,y+h*.25+Math.abs(Math.sin(frame*.03))*h*.3,w*.8,2,'#7fe0e8');}
+ else{rect(x,y+h*.3,w,h*.7,'#44545a');for(let n=0;n<4;n++)rect(x+w*(.1+n*.2),y+h*.38,w*.12,3,blink&&n%2?'#e3cf92':'#548b8c');line(x+w*.8,y+h*.3,x+w*.9,y,'#8aa0a6');rect(x+w*.1,y+h*.6,w*.5,h*.2,'#0b1a22');}
+}
+function nearestShipObject(){
+ const objects=[
+  {x:2.5,y:1.7,name:'Навигационный терминал',detail:'Положение корабля: сектор Kepler-186. Автопилот отключён. Связь с Центром: отсутствует.'},
+  {x:7.5,y:1.7,name:'Шкаф оборудования',detail:'Запасные датчики: 4. Комплект ремонта: 1. Состояние оборудования: исправно.'},
+  {x:8.5,y:5.5,name:'Научная лаборатория',detail:'Спектрометр готов. Анализатор образцов готов. Контейнеры для проб: 6.'},
+  {x:2.5,y:7.5,name:'Каюта отдыха',detail:'Кровать, личный шкаф и система ночного освещения. Здесь можно отдохнуть между экспедициями.'},
+  {x:6.5,y:7.5,name:'Хранилище образцов',detail:`Образцов в хранилище: ${total()}. Полностью исследовано планет: ${explored()} из ${planets.length}.`}
+ ];
+ let best=null;
+ for(const o of objects.concat(EXTRA)){const d=Math.hypot(o.x-walkX,o.y-walkY);if(!best||d<best.d)best={...o,d};}
+ return best;
+}
+function moveWalk(){
+ const step=.035;
+ let nx=walkX,ny=walkY;
+ if(walkForward){nx+=Math.cos(walkAngle)*step;ny+=Math.sin(walkAngle)*step;}
+ if(walkBack){nx-=Math.cos(walkAngle)*step;ny-=Math.sin(walkAngle)*step;}
+ if(walkLeft){nx+=Math.cos(walkAngle-Math.PI/2)*step;ny+=Math.sin(walkAngle-Math.PI/2)*step;}
+ if(walkRight){nx+=Math.cos(walkAngle+Math.PI/2)*step;ny+=Math.sin(walkAngle+Math.PI/2)*step;}
+ const canMove=(x,y)=>shipMap[Math.floor(y)]?.[Math.floor(x)]==='.';
+ if(canMove(nx,walkY))walkX=nx;
+ if(canMove(walkX,ny))walkY=ny;
+}
+function moveSurface(){
+ const step=.045;
+ if(surfaceForward)surfaceZ+=step;
+ if(surfaceBack)surfaceZ-=step;
+ if(surfaceLeft)surfaceX-=step;
+ if(surfaceRight)surfaceX+=step;
+}
+function update(){
+ if(mode==='flight'){
+  if(thrusting&&!braking){speed=Math.min(damaged?1:3,speed+.012);distance=Math.max(.08,distance-speed*.00042);}
+  else if(braking){speed=Math.max(0,speed-.06);}
+  else speed=Math.max(0,speed-.004);
+ }
+ if(mode==='walk')moveWalk();
+ if(mode==='surface')moveSurface();
+ $('landBtn').hidden=!(mode==='flight'&&distance<=.30&&activePlanet().land);
+ frame++;
+ if(mode==='flight'){
+  if(thrusting&&!braking&&power>0)power=Math.max(0,power-.02-speed*.01);
+  if(power<=0&&thrusting){thrusting=false;showToast('ЭНЕРГИЯ ИСЧЕРПАНА. ДВИГАТЕЛЬ ОТКЛЮЧЁН.');}
+  if(!thrusting&&!braking&&distance<.5)distance=Math.max(.08,distance-.0003*PD[activePlanet().kind][0]);
+  if(!damaged&&speed>2&&Math.random()<.0006){damaged=true;showToast('⚠ СБОЙ НАВИГАЦИИ! СКОРОСТЬ ОГРАНИЧЕНА. ПОЧИНИТЕ ТЕРМИНАЛ НА КОРАБЛЕ.');snd(180,.4,'square',.05);}
+  if(damaged&&speed>1)speed=Math.max(1,speed-.03);
+ }
+ if(!(mode==='flight'&&thrusting&&!braking))power=Math.min(100,power+.015*(1+rp/100));
+ if(mode==='flight'&&thrusting&&!braking&&frame%9===0)snd(50+speed*45,.16,'sawtooth',.02);
+ musicTick();horrorTick();if(frame%60===0)seconds++;
+ if(mode==='cabin')drawCabin();else if(mode==='flight')drawFlight();else if(mode==='walk')drawWalk();else drawSurface();
+ lighting();horrorFX();
+ $('clock').textContent='SHIP TIME '+String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
+ requestAnimationFrame(update);
+}
+function setMode(next){
+ mode=next;
+ const flight=mode==='flight',walk=mode==='walk',surface=mode==='surface',cabin=mode==='cabin';
+ $('flyBtn').hidden=!cabin;$('walkBtn').hidden=!cabin;
+ $('prevPlanetBtn').hidden=!cabin;$('nextPlanetBtn').hidden=!cabin;
+ $('cabinBtn').hidden=!flight;$('thrustBtn').hidden=!flight;$('brakeBtn').hidden=!flight;
+ $('landBtn').hidden=!(flight&&distance<=.30&&activePlanet().land);
+ $('takeoffBtn').hidden=!surface;$('walkExitBtn').hidden=!walk;$('interactBtn').hidden=!walk;
+ ['forwardBtn','backBtn','leftBtn','rightBtn'].forEach(id=>$(id).hidden=!(walk||surface));
+ $('scanBtn').hidden=walk||surface;$('noteBtn').hidden=walk;$('terminalBtn').hidden=walk||surface;
+ $('hint').textContent=flight?'НАВЕДИТЕ ПЛАНЕТУ В ЦЕНТР, СБЛИЗЬТЕСЬ И СНИЗЬТЕ СКОРОСТЬ.':
+  walk?'ИССЛЕДУЙТЕ ОТСЕКИ. ПОДОЙДИТЕ К ОБОРУДОВАНИЮ И НАЖМИТЕ «ОСМОТРЕТЬ».':
+  surface?'ВЫ ИССЛЕДУЕТЕ ПОВЕРХНОСТЬ. ИСПОЛЬЗУЙТЕ КНОПКИ ДВИЖЕНИЯ.':'КАБИНА: выберите действие';
+ if(flight)showToast('РЕЖИМ ПОЛЁТА. ДЕРЖИТЕ ПЛАНЕТУ В ЦЕНТРЕ.');
+ else if(walk)showToast('Вы внутри корабля. Исследуйте отсеки.');
+ else if(surface)showToast('Посадка завершена. Начато исследование поверхности.');
+ else{thrusting=false;braking=false;showToast('Вы вернулись в кабину.');}
+}
+
+function choosePlanet(delta){targetIndex=(targetIndex+delta+planets.length)%planets.length;distance=.92;speed=0;yaw=.16;pitch=.02;planetFound=false;showToast(`ЦЕЛЬ: ${activePlanet().name} / ${activePlanet().type}`);}
+$('prevPlanetBtn').addEventListener('click',()=>choosePlanet(-1));
+$('nextPlanetBtn').addEventListener('click',()=>choosePlanet(1));
+$('flyBtn').addEventListener('click',()=>setMode('flight'));
+$('cabinBtn').addEventListener('click',()=>setMode('cabin'));
+$('walkBtn').addEventListener('click',()=>setMode('walk'));
+$('walkExitBtn').addEventListener('click',()=>setMode('cabin'));
+$('interactBtn').addEventListener('click',()=>{
+ if(mode==='surface'){collectSample();return;}
+ const near=nearestShipObject();
+ if(near&&near.d<1.65){
+  if(near.name==='Научная лаборатория'){openLab();return;}
+  if(near.name==='Навигационный терминал'&&damaged){repair();return;}
+  openPanel(`<h2>${near.name.toUpperCase()}</h2><div class="entry"><p>${near.detail}</p><div class="stat"><span>Энергия корабля</span><b>94%</b></div><div class="stat"><span>Кислород</span><b>98%</b></div><div class="stat"><span>Корпус</span><b>100%</b></div></div><p class="small">Показания демонстрационные — это параметры игрового прототипа.</p>`);
+ }else showToast('Подойдите ближе к оборудованию.');
+});
+$('landBtn').addEventListener('click',()=>{
+ if(!activePlanet().land){showToast('ПОСАДКА НЕВОЗМОЖНА: У ПЛАНЕТЫ НЕТ ТВЁРДОЙ ПОВЕРХНОСТИ.');return;}
+ if(distance>.30){showToast('Планета ещё далеко. Продолжайте сближение.');return;}
+ if(speed>.25){showToast('Слишком высокая скорость. Удерживайте ТОРМОЗ.');return;}
+ landed=true;speed=0;surfacePlanetIndex=targetIndex;setMode('surface');
+});
+$('takeoffBtn').addEventListener('click',()=>{
+ landed=false;distance=.22;speed=0;targetIndex=surfacePlanetIndex;setMode('flight');showToast('Корабль готов к взлёту. Удерживайте ТЯГУ.');
+});
+$('closeBtn').addEventListener('click',closePanel);
+$('scanBtn').addEventListener('click',()=>{
+ scanCount++;if(!planetFound){planetFound=true;showToast('ОБЪЕКТ ЗАНЕСЁН В КАТАЛОГ.');}
+ const p=activePlanet();const proximity=distance<.3?'Орбитальная дистанция достигнута. Можно готовить подробное исследование.':'До орбиты ещё далеко. Продолжайте сближение.';
+ openPanel(`<h2>РЕЗУЛЬТАТ СКАНИРОВАНИЯ</h2><div class="entry"><div class="small">КАТАЛОЖНЫЙ ОБЪЕКТ / ${String(targetIndex+1).padStart(3,'0')}</div><h3 style="color:#b9e1df;font-size:14px">${p.name}</h3><p>${p.info}</p><div class="stat"><span>Класс</span><b>${p.type}</b></div><div class="stat"><span>Метод</span><b>Спектральный анализ</b></div>${pdStats()}<div class="stat"><span>Условная дистанция</span><b>${distance.toFixed(2)} ед.</b></div><div class="stat"><span>Скорость судна</span><b>${speed.toFixed(2)} ед./с</b></div><div class="stat"><span>Посадка</span><b style="color:${p.land?'#b5e7c4':'#e2c1ce'}">${p.land?'Возможна':'Невозможна'}</b></div></div><p>${proximity}</p><p class="small">Параметры в прототипе демонстрационные, не реальные астрономические измерения.</p>`);
+});
+$('noteBtn').addEventListener('click',()=>{
+ openPanel(`<h2>ПОЛЕВОЙ БЛОКНОТ</h2><div class="small">ЭКСПЕДИЦИЯ 01 / ЛИЧНЫЕ ЗАПИСИ</div><div class="entry"><div class="stat"><span>Объектов в каталоге</span><b>${planets.length}</b></div><div class="stat"><span>Текущая цель</span><b>${activePlanet().name}</b></div><div class="stat"><span>Сканирований</span><b>${scanCount}</b></div><div class="stat"><span>Образцов собрано</span><b>${total()}</b></div><div class="stat"><span>Исследовано планет</span><b>${explored()}/${planets.length}</b></div><div class="stat"><span>Каталог измерений</span><b>${cat.length}/${planets.length}</b></div><div class="stat"><span>Очки исследований</span><b>${rp}</b></div><div class="stat"><span>Условная дистанция</span><b>${distance.toFixed(2)} ед.</b></div></div><p>ЗАПИСИ ИССЛЕДОВАТЕЛЯ</p><textarea id="notes" placeholder="Запишите наблюдения, гипотезы или зарисовки..."></textarea><button id="saveNotes" style="width:100%">СОХРАНИТЬ ЗАПИСЬ</button><p class="small">Записи сохраняются на этом устройстве.</p>`);
+ $('notes').value=notes;
+ $('saveNotes').addEventListener('click',()=>{notes=$('notes').value;LS.setItem('astro_notes',notes);showToast('ЗАПИСЬ СОХРАНЕНА В БОРТОВОМ ЖУРНАЛЕ.');});
+});
+$('terminalBtn').addEventListener('click',()=>{
+ openPanel(`<h2>БОРТОВОЙ ТЕРМИНАЛ</h2><div class="entry"><div class="small">СУДНО / ASTR-01</div><h3 style="font-size:13px;color:#c5e4e2">«Астрограф»</h3><p>Автоматическое исследовательское судно. Экипаж: 1 научный специалист.</p></div><div class="stat"><span>Состояние корпуса</span><b>100%</b></div><div class="stat"><span>Энергия</span><b>${Math.round(power)}%</b></div><div class="stat"><span>Кислород</span><b>98%</b></div><div class="stat"><span>Цель навигации</span><b>${activePlanet().name}</b></div><div class="stat"><span>Условная дистанция</span><b>${distance.toFixed(2)} ед.</b></div><div class="stat"><span>Связь с Центром</span><b style="color:#d7c18d">${total()>=5?'Слабый сигнал':'Нет сигнала'}</b></div><p>${centerMsg()}</p><button id="musBtn" style="width:100%">МУЗЫКА: ${musicOn?'ВКЛ':'ВЫКЛ'}</button><button id=\"skrBtn\" style=\"width:100%;margin-top:6px\">СКРИМЕРЫ: ${scareOn?'ВКЛ':'ВЫКЛ'}</button>`);
+});
+
+function holdButton(id,onStart,onEnd){
+ const el=$(id);
+ el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);onStart();});
+ el.addEventListener('pointerup',e=>{e.preventDefault();onEnd();});
+ el.addEventListener('pointercancel',onEnd);
+ el.addEventListener('lostpointercapture',onEnd);
+}
+holdButton('thrustBtn',()=>{thrusting=true;braking=false;},()=>{thrusting=false;});
+holdButton('brakeBtn',()=>{braking=true;thrusting=false;},()=>{braking=false;});
+
+canvas.addEventListener('pointerdown',e=>{
+ if(!['flight','walk','surface'].includes(mode)||$('panel').style.display==='block')return;
+ dragPointer=e.pointerId;lastPointerX=e.clientX;lastPointerY=e.clientY;
+ canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove',e=>{
+ if(!['flight','walk','surface'].includes(mode)||dragPointer!==e.pointerId)return;
+ const rect=canvas.getBoundingClientRect();
+ const dx=(e.clientX-lastPointerX)*W/rect.width;
+ const dy=(e.clientY-lastPointerY)*H/rect.height;
+ lastPointerX=e.clientX;lastPointerY=e.clientY;
+ if(mode==='flight'){
+  yaw=Math.max(-1.1,Math.min(1.1,yaw+dx*.006));
+  pitch=Math.max(-.75,Math.min(.75,pitch+dy*.006));
+ }else if(mode==='walk'){walkAngle+=dx*.008;}
+ else{surfaceX+=dx*.006;}
+});
+function endDrag(e){if(dragPointer===e.pointerId)dragPointer=null;}
+canvas.addEventListener('pointerup',endDrag);
+canvas.addEventListener('pointercancel',endDrag);
+canvas.addEventListener('lostpointercapture',endDrag);
+
+holdButton('forwardBtn',()=>{if(mode==='walk')walkForward=true;else surfaceForward=true;},()=>{walkForward=false;surfaceForward=false;});
+holdButton('backBtn',()=>{if(mode==='walk')walkBack=true;else surfaceBack=true;},()=>{walkBack=false;surfaceBack=false;});
+holdButton('leftBtn',()=>{if(mode==='walk')walkLeft=true;else surfaceLeft=true;},()=>{walkLeft=false;surfaceLeft=false;});
+holdButton('rightBtn',()=>{if(mode==='walk')walkRight=true;else surfaceRight=true;},()=>{walkRight=false;surfaceRight=false;});
+
+update();
+})();
+</script>
+</body>
+</html>
